@@ -18,27 +18,27 @@ describe RNATS do
     msgs.should == ['connected']
   end
 
-  it 'should dispatch messages to multi-consumers by round roubin' do
+  it 'should dispatch messages to multi-consumers who are sharing one queue but reply by one consumer up to round roubin mechanism' do
      msgs = []
      EM.run do
        RNATS.start do
-          RNATS.harryz_sub{|msg| puts "111mesg is dispatched to consumer1"
+          RNATS.sharedque_sub{|msg| puts "111mesg is dispatched to consumer1"
           msgs << msg}
-          RNATS.harryz_sub{|msg| puts "222mesg is dispatched to consumer2"
+          RNATS.sharedque_sub{|msg| puts "222mesg is dispatched to consumer2"
           msgs << msg}
-          RNATS.harryz_sub{|msg| puts "333mesg is dispatched to consumer3"
+          RNATS.sharedque_sub{|msg| puts "333mesg is dispatched to consumer3"
           msgs << msg}
-          RNATS.harryz_sub{|msg| puts "444mesg is dispatched to consumer4"
+          RNATS.sharedque_sub{|msg| puts "444mesg is dispatched to consumer4"
           msgs << msg}
-          RNATS.harryz_sub{|msg| puts "555mesg is dispatched to consumer5"
+          RNATS.sharedque_sub{|msg| puts "555mesg is dispatched to consumer5"
           msgs << msg}                 
           RNATS.subscribe('exit') { RNATS.stop {EM.stop} }
           
-          RNATS.harryz_pub('mesg1')
-          RNATS.harryz_pub('mesg2')
-          RNATS.harryz_pub('mesg3')  
-          RNATS.harryz_pub('mesg4')
-          RNATS.harryz_pub('mesg5')
+          RNATS.sharedque_pub('mesg1')
+          RNATS.sharedque_pub('mesg2')
+          RNATS.sharedque_pub('mesg3')  
+          RNATS.sharedque_pub('mesg4')
+          RNATS.sharedque_pub('mesg5')
           
           RNATS.subscribe('a.*') { |msg,_, topic| msgs << topic }
           RNATS.subscribe('a.*.a') { |msg,_,topic| msgs << topic }

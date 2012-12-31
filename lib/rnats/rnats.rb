@@ -22,7 +22,7 @@ module RNATS
         @reconnecting = false
         @on_connect.call if @on_connect
       end
-	  
+	    
       @client.on_error do |conn, connection_close|
         @on_error.call(connection_close.reply_code, connection_close.reply_text) if @on_error
         puts "[connection.close] Reply code = #{connection_close.reply_code}, reply text = #{connection_close.reply_text}"
@@ -34,7 +34,7 @@ module RNATS
           conn.periodically_reconnect(@reconnect_time_wait || 30)
         end
       end
-    
+      
       @on_connect = blk
       # the channel will be delayed until connection is established
 	    @channel = AMQP::Channel.new(@client)  
@@ -46,17 +46,17 @@ module RNATS
 	    @exchange = @channel.topic(@exchange_name,:auto_delete => true)
 	    
 	    
-      @harryz_channel=AMQP::Channel.new(@client)
-      @harryz_channel.on_error do |ch, channel_close|
+      @sharedque_channel=AMQP::Channel.new(@client)
+      @sharedque_channel.on_error do |ch, channel_close|
         puts "Channel-level error: #{channel_close.reply_text}, shutting down..."
         @client.close { EventMachine.stop }
       end
-      @harryz_channel.prefetch 1
+      @sharedque_channel.prefetch 1
 =begin
-by harry:this means we wouldn't dispatch a new message to a worker until it has process or acknowledge the prevous one.Instead it will dispatch it to the next worker(consumer)
+this means we wouldn't dispatch a new message to a worker until it has process or acknowledge the prevous one.Instead it will dispatch it to the next worker(consumer)
 =end
-      @harryz_queue    = @harryz_channel.queue("amqpgem.examples.hello_world", :auto_delete => true)
-      @harryz_exchange = @harryz_channel.default_exchange
+      @sharedque_queue    = @sharedque_channel.queue("multi.consumers.shared.queue", :auto_delete => true)
+      @sharedque_exchange = @sharedque_channel.default_exchange
       
     end
 =begin
@@ -64,9 +64,9 @@ the attribute-exclusive means the queue can only be used by one consumer
 to share one queue by multi-consumers,we need to initialize a new consumer every time we subscribe
 like belows
 =end  
-    def harryz_sub(&blk)
-        puts "here harry_sub is called!"
-        consumer1=AMQP::Consumer.new(@harryz_channel,@harryz_queue)       
+    def sharedque_sub(&blk)
+        puts "here sharedque_sub is called!"
+        consumer1=AMQP::Consumer.new(@sharedque_channel,@sharedque_queue)       
         consumer1.consume.on_delivery do |metadata,payload| 
            metadata.ack
            puts "Received a message: #{payload}. "
@@ -74,9 +74,9 @@ like belows
         end
     end
     
-    def harryz_pub(message)
-        puts "harryz_pub is called,published a message: #{message}"
-        @harryz_exchange.publish message, :routing_key => @harryz_queue.name
+    def sharedque_pub(message)
+        puts "sharedque_pub is called,published a message: #{message}"
+        @sharedque_exchange.publish message, :routing_key => @sharedque_queue.name
     end
     
     def publish(topic, body = '', opts = {}, &blk)
